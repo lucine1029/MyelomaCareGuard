@@ -1,0 +1,33 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="app-container">
+
+    <div class="top-bar">
+        <AuthorizeView>
+            <Authorized Context="authState">
+                <span>@authState.User.Identity?.Name</span>
+
+                <form method="post" action="/Account/Logout">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="returnUrl" value="" />
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        Logout
+                    </button>
+                </form>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <div class="content-wrapper">
+        @Body
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <BottomNav />
+        </Authorized>
+    </AuthorizeView>
+
+</div>

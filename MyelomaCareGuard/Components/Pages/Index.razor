@@ -1,0 +1,32 @@
+﻿@page "/"
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="d-flex justify-content-center align-items-center" style="height:80vh;">
+    <div class="card p-4 shadow" style="width:300px; text-align:center;">
+
+        <h4>Myeloma Care Guard</h4>
+        <p>Please login or register</p>
+
+        <NavLink href="/Account/Login" class="btn btn-primary w-100 mb-2">
+            Login
+        </NavLink>
+
+        <NavLink href="/Account/Register" class="btn btn-outline-secondary w-100">
+            Register
+        </NavLink>
+
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/home");
+        }
+    }
+}

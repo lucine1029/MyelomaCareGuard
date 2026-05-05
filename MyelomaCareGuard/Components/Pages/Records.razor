@@ -1,0 +1,229 @@
+﻿@* @page "/records"
+@attribute [Authorize]
+@using MyelomaCareGuard.Models
+@using Microsoft.AspNetCore.Identity
+@using MyelomaCareGuard.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject RecordService RecordService
+
+<h3>Records</h3>
+
+<!-- Select Type -->
+<select class="form-select" @onchange="OnTypeChanged">
+    <option>Select Type</option>
+
+    @foreach (var type in Enum.GetValues<RecordType>())
+    {
+        <option value="@type">@type</option>
+    }
+</select>
+
+<!-- Input Value -->
+<input class="form-control mt-2" type="number" @bind="value" />
+
+<!-- Add Button -->
+<button class="btn btn-primary mt-2" @onclick="AddRecord">
+    Add
+</button>
+
+<hr />
+
+<h4>Recent Records</h4>
+
+@foreach (var r in records)
+{
+    <p>@r.Type - @r.Value (@r.Date.ToShortDateString())</p>
+}
+
+@code {
+    private RecordType selectedType;
+    private decimal value;
+
+    private List<Record> records = new();
+
+    // protected override async Task OnInitializedAsync()
+    {
+        await LoadRecords();
+    }
+
+    private async Task AddRecord()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var record = new Record
+        {
+            Type = selectedType,
+            Value = (double)value, // Explicit cast from decimal to double
+            UserId = userId,
+            Date = DateTime.Now
+        };
+
+        await RecordService.AddAsync(record);
+
+        // Reload list after adding
+        await LoadRecords();
+
+        // Clear input (optional)
+        value = 0;
+    }
+
+    private void OnTypeChanged(ChangeEventArgs e)
+    {
+        selectedType = Enum.Parse<RecordType>(e.Value!.ToString()!);
+    }
+
+    private async Task LoadRecords()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        records = await RecordService.GetByUserAsync(userId);
+    }
+} *@
+
+
+@page "/records"
+@attribute [Authorize]
+
+@using MyelomaCareGuard.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using MyelomaCareGuard.Services
+@inject AuthenticationStateProvider AuthStateProvider
+@inject RecordService RecordService
+
+<h2 class="page-title">Health Records</h2>
+
+<!-- TYPE SELECTOR (chips style) -->
+<div class="chip-row">
+    @foreach (var type in Enum.GetValues<RecordType>())
+    {
+        <button class="chip @(selectedType == type ? "active" : "")"
+                @onclick="() => SelectType(type)">
+            @type
+        </button>
+    }
+</div>
+
+<!-- TREND CARD -->
+<div class="card">
+    <h4>@selectedType Trend</h4>
+
+    @if (filteredRecords.Any())
+    {
+        <div class="chart-placeholder">
+            Chart coming soon
+        </div>
+
+        <div class="range">
+            Normal range: @meta.Min - @meta.Max @meta.Unit
+        </div>
+    }
+    else
+    {
+        <p class="muted">No data yet</p>
+    }
+</div>
+
+<!-- ADD RECORD -->
+<div class="card">
+    <h4>Add Record</h4>
+
+    <input class="form-control"
+           type="number"
+           placeholder="Enter value"
+           @bind="value" />
+
+    <button class="btn-primary mt-2" @onclick="AddRecord">
+        + Add
+    </button>
+</div>
+
+<!-- RECORD LIST -->
+<div class="record-list">
+    @foreach (var r in filteredRecords.OrderByDescending(x => x.Date))
+    {
+        <div class="record-card">
+            <div>
+                <div class="record-type">@r.Type</div>
+                <div class="record-date">@r.Date.ToString("MMM dd, yyyy")</div>
+            </div>
+
+            <div class="text-end">
+                <div class="record-value">@r.Value @meta.Unit</div>
+
+                <div class="@GetStatusClass(r)">
+                    @GetStatusText(r)
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private RecordType selectedType = RecordType.Weight;
+    private decimal value;
+
+    private List<Record> records = new();
+
+    private IEnumerable<Record> filteredRecords =>
+        records.Where(r => r.Type == selectedType);
+
+    private RecordMetadata meta => RecordMetadataService.GetMetadata(selectedType);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecords();
+    }
+
+    private async Task LoadRecords()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        records = await RecordService.GetByUserAsync(userId);
+    }
+
+    private async Task AddRecord()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var record = new Record
+        {
+            Type = selectedType,
+            Value = (double)value,
+            UserId = userId,
+            Date = DateTime.Now
+        };
+
+        await RecordService.AddAsync(record);
+        await LoadRecords();
+
+        value = 0;
+    }
+
+    private void SelectType(RecordType type)
+    {
+        selectedType = type;
+    }
+
+    private string GetStatusClass(Record r)
+    {
+        if (r.Value > meta.Max) return "status high";
+        if (r.Value < meta.Min) return "status low";
+        return "status normal";
+    }
+
+    private string GetStatusText(Record r)
+    {
+        if (r.Value > meta.Max) return "High";
+        if (r.Value < meta.Min) return "Low";
+        return "Normal";
+    }
+}
