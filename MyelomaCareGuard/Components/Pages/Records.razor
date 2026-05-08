@@ -9,94 +9,101 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject RecordService RecordService
 
-<h2 class="page-title">Health Records</h2>
-<h6 class="page-subtitle">Track and view trends</h6>
+<div class="records-header">
+    <h2 class="page-title">Health Records</h2>
+    <h6 class="page-subtitle">Track and view trends</h6>
 
-<!-- TYPE SELECTOR (chips style) -->
-<div class="chip-row">
-    @foreach (var type in Enum.GetValues<RecordType>())
-    {
-        <button class="chip @(selectedType == type ? "active" : "")"
-                @onclick="() => SelectType(type)">
-            @type
+    <!-- TYPE SELECTOR (chips style) -->
+    <div class="chip-row">
+        @foreach (var type in Enum.GetValues<RecordType>())
+        {
+            <button class="chip @(selectedType == type ? "active" : "")"
+                    @onclick="() => SelectType(type)">
+                @type
+            </button>
+        }
+    </div>
+</div>
+
+<div class="records-scroll">
+    <!-- TREND CARD -->
+    <div class="card">
+
+        <h4>@selectedType Trend</h4>
+
+        @if (filteredRecords.Any())
+        {
+            <ApexChart TItem="ChartPoint"
+                       Height="220"
+                       @key="selectedType">
+
+                <ApexPointSeries TItem="ChartPoint"
+                                 Name="@($"{selectedType}")"
+                                 Items="chartData"
+                                 XValue="@(e => e.Label)"
+                                 YValue="@(e => e.Value)" />
+
+            </ApexChart>
+
+            <div class="range">
+                Normal range: @meta.Min - @meta.Max @meta.Unit
+            </div>
+        }
+        else
+        {
+            <p class="muted">No data yet</p>
+        }
+
+    </div>
+
+    <!-- ADD RECORD -->
+    <div class="card">
+        <h4>Add Record</h4>
+
+        <input class="form-control"
+               type="number"
+               placeholder="Enter value"
+               @bind="value" />
+
+        <button class="btn-primary mt-2" @onclick="AddRecord">
+            + Add
         </button>
-    }
-</div>
+    </div>
 
-<!-- TREND CARD -->
-<div class="card">
+    <!-- RECORD LIST -->
+    <div class="card">
+        <h4>Recent Records</h4>
 
-    <h4>@selectedType Trend</h4>
+        @foreach (var r in latestRecords)
+        {
+            <div class="record-item">
 
-    @if (filteredRecords.Any())
-    {
-        <ApexChart TItem="ChartPoint"
-                   Height="220"
-                   @key="selectedType">
+                <!-- LEFT: value + unit -->
+                <div class="record-left">
+                    <div class="record-value">
+                        @r.Value <span class="record-unit">@meta.Unit</span>
+                    </div>
 
-            <ApexPointSeries TItem="ChartPoint"
-                             Name="@($"{selectedType}")"
-                             Items="chartData"
-                             XValue="@(e => e.Label)"
-                             YValue="@(e => e.Value)" />
-
-        </ApexChart>
-
-        <div class="range">
-            Normal range: @meta.Min - @meta.Max @meta.Unit
-        </div>
-    }
-    else
-    {
-        <p class="muted">No data yet</p>
-    }
-
-</div>
-
-<!-- ADD RECORD -->
-<div class="card">
-    <h4>Add Record</h4>
-
-    <input class="form-control"
-           type="number"
-           placeholder="Enter value"
-           @bind="value" />
-
-    <button class="btn-primary mt-2" @onclick="AddRecord">
-        + Add
-    </button>
-</div>
-
-<!-- RECORD LIST -->
-<div class="card">
-    <h4>Recent Records</h4>
-
-    @foreach (var r in latestRecords)
-    {
-        <div class="record-item">
-
-            <!-- LEFT: value + unit -->
-            <div class="record-left">
-                <div class="record-value">
-                    @r.Value <span class="record-unit">@meta.Unit</span>
+                    <div class="record-date">
+                        <i class="bi bi-calendar3"></i>
+                        @r.Date.ToString("MMM dd, yyyy")
+                    </div>
                 </div>
 
-                <div class="record-date">
-                    <i class="bi bi-calendar3"></i>
-                    @r.Date.ToString("MMM dd, yyyy")
+                <!-- RIGHT: status -->
+                <div class="record-right">
+                    <span class="@GetStatusClass(r)">
+                        @GetStatusText(r)
+                    </span>
                 </div>
-            </div>
 
-            <!-- RIGHT: status -->
-            <div class="record-right">
-                <span class="@GetStatusClass(r)">
-                    @GetStatusText(r)
-                </span>
             </div>
-
-        </div>
-    }
+        }
+    </div>
 </div>
+
+
+
 
 @code {
     private RecordType selectedType = RecordType.MProtein;
