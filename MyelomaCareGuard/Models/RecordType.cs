@@ -4,14 +4,13 @@
     {
         MProtein,
         KappaLightChain,
-        LambdaLightChain,
+        WhiteBloodCell
+        /*LambdaLightChain,
         WhiteBloodCell,
         Hemoglobin,
         Creatinine,
         Calcium,
         Beta2Microglobulin,
-        Weight
+        Weight*/
     }
-
-
 }

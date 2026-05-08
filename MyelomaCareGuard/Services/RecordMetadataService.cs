@@ -8,6 +8,7 @@ namespace MyelomaCareGuard.Services
         {
             { RecordType.MProtein, new RecordMetadata { Unit = "g/L", Min = 0, Max = 0 } },
             { RecordType.KappaLightChain, new RecordMetadata { Unit = "mg/L", Min = 3.30, Max = 19.40 } },
+            { RecordType.WhiteBloodCell, new RecordMetadata { Unit = "10^9/L", Min = 3.50, Max = 9.50 } }
             /*{ RecordType.LambdaLightChain, new RecordMetadata { Unit = "mg/L", Min = 5.70, Max = 26.30 } },
             { RecordType.WhiteBloodCell, new RecordMetadata { Unit = "10^9/L", Min = 3.50, Max = 9.50 } },
             { RecordType.Hemoglobin, new RecordMetadata { Unit = "g/L", Min = 115, Max = 150 } },
