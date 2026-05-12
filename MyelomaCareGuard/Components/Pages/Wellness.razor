@@ -1,8 +1,174 @@
 ﻿@page "/wellness"
 @attribute [Authorize]
 
-<h3>Wellness</h3>
+@using MyelomaCareGuard.Models
+@using MyelomaCareGuard.Services
+@inject ReminderService ReminderService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h2 class="page-title">Wellness</h2>
+<h6 class="page-subtitle">Set up your daily reminders</h6>
+
+<div class="records-scroll">
+<!-- ADD REMINDER CARD -->
+<div class="card">
+
+    <h4>Add New Reminder</h4>
+
+    <!-- Title -->
+    <input class="form-control mb-2"
+           placeholder="Reminder title"
+           @bind="newReminder.Title" />
+
+    <!-- TYPE -->
+    <div class="chip-row">
+        @foreach (var type in Enum.GetValues<ReminderType>())
+        {
+            <button class="chip @(newReminder.Type == type ? "active" : "")"
+                    @onclick="() => newReminder.Type = type">
+                @type
+            </button>
+        }
+    </div>
+
+    <!-- TIME -->
+    <input type="time"
+           class="form-control mb-2"
+           value="@timeString"
+           @onchange="OnTimeChanged" />
+
+    <!-- DAYS -->
+    <div class="chip-row flex-wrap">
+        @foreach (var day in days)
+        {
+            <button class="chip @(newReminder.Days.Contains(day) ? "active" : "")"
+                    @onclick="() => ToggleDay(day)">
+                @day
+            </button>
+        }
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary" @onclick="SaveReminder">Save</button>
+        <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+    </div>
+
+</div>
+
+<!-- REMINDER LIST -->
+<div class="card">
+    <h4>Your Reminders</h4>
+
+    @if (reminders.Any())
+    {
+        @foreach (var r in reminders.Take(20))
+        {
+            <div class="record-item">
+
+                <div class="record-sub-item">
+                    <div class="record-value">
+                        @r.Title
+                    </div>
+
+                    <div class="record-date">
+                        @string.Join(", ", r.Days)
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <div>@r.Time.ToString(@"hh\:mm")</div>
+                </div>
+
+            </div>
+        }
+    }
+    else
+    {
+        <p class="muted">No reminders yet</p>
+    }
+</div>
+</div>
 
 @code {
 
+    private List<Reminder> reminders = new();
+
+    private Reminder newReminder = new()
+    {
+        Type = ReminderType.Medication,
+        Days = new List<string>()
+    };
+
+    private string timeString
+    {
+        get => newReminder.Time.ToString(@"hh\:mm");
+        set { }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReminders();
+    }
+
+    private async Task LoadReminders()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        reminders = await ReminderService.GetByUserAsync(userId);
+    }
+
+    private async Task SaveReminder()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var reminder = new Reminder
+        {
+            Title = newReminder.Title,
+            Type = newReminder.Type,
+            Time = newReminder.Time,
+            Days = new List<string>(newReminder.Days),
+            UserId = userId
+        };
+
+        await ReminderService.AddAsync(reminder);
+
+        await LoadReminders();   // 🔥 reload from DB
+
+        Cancel();
+    }
+
+    private void OnTimeChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+
+        if (TimeSpan.TryParse(value, out var time))
+        {
+            newReminder.Time = time;
+        }
+    }
+
+    private List<string> days = new()
+    {
+        "Mon","Tue","Wed","Thu","Fri","Sat","Sun"
+    };
+
+    private void ToggleDay(string day)
+    {
+        if (newReminder.Days.Contains(day))
+            newReminder.Days.Remove(day);
+        else
+            newReminder.Days.Add(day);
+    }
+
+    private void Cancel()
+    {
+        newReminder = new Reminder
+        {
+            Type = ReminderType.Medication,
+            Days = new List<string>()
+        };
+    }
 }

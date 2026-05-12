@@ -18,6 +18,8 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<RecordService>();
+builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<ReminderService>();
 
 builder.Services.AddAuthentication(options =>
     {

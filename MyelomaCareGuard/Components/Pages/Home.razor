@@ -1,8 +1,177 @@
 ﻿@page "/home"
 @attribute [Authorize]
 
-<PageTitle>Home</PageTitle>
+@using MyelomaCareGuard.Models
+@using MyelomaCareGuard.Services
+@using Microsoft.AspNetCore.Components.Authorization
 
-<h1>Hello, world!</h1>
+@inject ReminderService ReminderService
+@inject BookingService BookingService
+@inject AuthenticationStateProvider AuthStateProvider
 
-Welcome to your new app.
+<div class="home-header">
+    <h2 class="page-title">@Greeting</h2>
+    <h6 class="page-subtitle">
+        Here's your health overview today
+    </h6>
+</div>
+
+<div class="records-scroll">
+<!-- TODAY CHECKLIST -->
+<div class="card">
+
+    <h4>Today's Checklist</h4>
+
+    @if (todayReminders.Any())
+    {
+        @foreach (var r in todayReminders)
+        {
+            <div class="record-item">
+
+                <div class="record-sub-item">
+                    <div class="record-value">
+                        @r.Title
+                    </div>
+
+                    <div class="record-date">
+                        @string.Join(", ", r.Days)
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <div>@r.Time.ToString(@"hh\:mm")</div>
+                </div>
+
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-card">
+            <i class="bi bi-check2-circle empty-icon"></i>
+            <p>No reminders for today</p>
+        </div>
+    }
+
+</div>
+
+<!-- UPCOMING BOOKINGS -->
+<div class="card">
+
+    <h4>Upcoming Bookings</h4>
+
+    @if (upcomingBookings.Any())
+    {
+        @foreach (var b in upcomingBookings)
+        {
+            <div class="record-item">
+
+                <div class="record-sub-item">
+                    <div class="record-value">
+                        @b.Title
+                    </div>
+
+                    <div class="record-date">
+                        <div>@b.DateTime.ToString("MMM dd, yyyy")</div>
+                        <div>@b.Location</div>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <div class="status normal">
+                        @GetDaysLeftText(b.DateTime)
+                    </div>
+                </div>
+
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-card">
+            <i class="bi bi-calendar-x empty-icon"></i>
+
+            <p>
+                You do not have any bookings
+                in the next 2 days
+            </p>
+        </div>
+    }
+
+</div>
+</div>
+
+@code {
+
+    private List<Reminder> reminders = new();
+    private List<Booking> bookings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        var userId = authState.User
+            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+            ?.Value;
+
+        reminders = await ReminderService.GetByUserAsync(userId);
+
+        bookings = await BookingService.GetByUserAsync(userId);
+    }
+
+    // Greeting
+    private string Greeting
+    {
+        get
+        {
+            var hour = DateTime.Now.Hour;
+
+            if (hour < 12)
+                return "Good Morning!";
+
+            if (hour < 17)
+                return "Good Afternoon!";
+
+            return "Good Evening!";
+        }
+    }
+
+    // Today's reminders
+    private IEnumerable<Reminder> todayReminders
+    {
+        get
+        {
+            var today = DateTime.Now.ToString("ddd");
+
+            return reminders
+                .Where(r => r.Days.Contains(today))
+                .OrderBy(r => r.Time);
+        }
+    }
+
+    // Upcoming bookings (today + next 2 days)
+    private IEnumerable<Booking> upcomingBookings =>
+        bookings
+            .Where(b =>
+                b.DateTime.Date >= DateTime.Today &&
+                b.DateTime.Date <= DateTime.Today.AddDays(2))
+            .OrderBy(b => b.DateTime);
+
+    private string GetDaysLeftText(DateTime date)
+    {
+        var days = (date.Date - DateTime.Today).Days;
+
+        if (days == 0)
+            return "Today";
+
+        if (days == 1)
+            return "Tomorrow";
+
+        return $"{days} days";
+    }
+}

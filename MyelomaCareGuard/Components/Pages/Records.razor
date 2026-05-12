@@ -35,10 +35,10 @@
         {
             <ApexChart TItem="ChartPoint"
                        Height="220"
-                       @key="selectedType">
+                       @key="@($"{selectedType}-{Guid.NewGuid()}")">
 
                 <ApexPointSeries TItem="ChartPoint"
-                                 Name="@($"{selectedType}")"
+                                 Name="@selectedType.ToString()"
                                  Items="chartData"
                                  XValue="@(e => e.Label)"
                                  YValue="@(e => e.Value)" />
@@ -78,11 +78,22 @@
         {
             <div class="record-item">
 
-                <!-- LEFT: value + unit -->
-                <div class="record-left">
-                    <div class="record-value">
-                        @r.Value <span class="record-unit">@meta.Unit</span>
-                    </div>
+                <!-- LEFT -->
+                <div class="record-left record-sub-item">
+
+                    @if (editingRecordId == r.Id)
+                    {
+                        <input class="form-control"
+                               type="number"
+                               @bind="editValue" />
+                    }
+                    else
+                    {
+                        <div class="record-value">
+                            @r.Value
+                            <span class="record-unit">@meta.Unit</span>
+                        </div>
+                    }
 
                     <div class="record-date">
                         <i class="bi bi-calendar3"></i>
@@ -90,11 +101,42 @@
                     </div>
                 </div>
 
-                <!-- RIGHT: status -->
+                <!-- RIGHT -->
                 <div class="record-right">
+
                     <span class="@GetStatusClass(r)">
                         @GetStatusText(r)
                     </span>
+
+                    <div class="record-actions">
+
+                        @if (editingRecordId == r.Id)
+                        {
+                            <button class="icon-btn save"
+                                    @onclick="() => SaveEdit(r)">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+
+                            <button class="icon-btn cancel"
+                                    @onclick="CancelEdit">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="icon-btn edit"
+                                    @onclick="() => StartEdit(r)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <button class="icon-btn delete"
+                                    @onclick="() => DeleteRecord(r.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+
+                    </div>
+
                 </div>
 
             </div>
@@ -111,6 +153,10 @@
 
     private List<Record> records = new();
 
+    private int? editingRecordId = null;
+
+    private decimal editValue;
+
     private IEnumerable<Record> filteredRecords =>
         records
             .Where(r => r.Type == selectedType)
@@ -125,9 +171,10 @@
 
     private List<ChartPoint> chartData =>
         filteredRecords
+            .OrderBy(x => x.Date)
             .Select(x => new ChartPoint
             {
-                Date = x.Date.Date,
+                Label = x.Date.ToString("MM-dd HH:mm:ss"),
                 Value = (decimal)x.Value
             })
             .ToList();
@@ -188,5 +235,34 @@
         if (r.Value > meta.Max) return "High";
         if (r.Value < meta.Min) return "Low";
         return "Normal";
+    }
+
+    private void StartEdit(Record r)
+    {
+        editingRecordId = r.Id;
+        editValue = (decimal)r.Value;
+    }
+
+    private void CancelEdit()
+    {
+        editingRecordId = null;
+    }
+
+    private async Task SaveEdit(Record r)
+    {
+        r.Value = (double)editValue;
+
+        await RecordService.UpdateAsync(r);
+
+        editingRecordId = null;
+
+        await LoadRecords();
+    }
+
+    private async Task DeleteRecord(int id)
+    {
+        await RecordService.DeleteAsync(id);
+
+        await LoadRecords();
     }
 }

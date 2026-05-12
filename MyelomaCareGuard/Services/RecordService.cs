@@ -24,5 +24,22 @@ namespace MyelomaCareGuard.Services
                 .OrderByDescending(r => r.Date)
                 .ToListAsync();
         }
+
+        public async Task UpdateAsync(Record record)
+        {
+            _context.Records.Update(record);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var record = await _context.Records.FindAsync(id);
+
+            if (record != null)
+            {
+                _context.Records.Remove(record);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

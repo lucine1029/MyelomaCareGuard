@@ -1,8 +1,101 @@
 ﻿@page "/reports"
 @attribute [Authorize]
 
-<h3>Reports</h3>
+@using MyelomaCareGuard.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IWebHostEnvironment env
+
+<div class="records-header">
+    <h2 class="page-title">Reports</h2>
+    <h6 class="page-subtitle">Upload & view medical reports</h6>
+</div>
+
+<div class="records-scroll">
+
+    <!-- UPLOAD CARD -->
+    <div class="card">
+        <h4>Upload Report</h4>
+
+        <InputFile OnChange="HandleFileSelected" />
+
+        <select class="form-select mt-2" @bind="selectedType">
+            @foreach (var type in Enum.GetValues<ReportType>())
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+
+        <button class="btn-primary mt-3" @onclick="UploadFile">
+            Upload
+        </button>
+    </div>
+
+    <!-- LIST CARD -->
+    <div class="card">
+        <h4>Recent Reports</h4>
+
+        @foreach (var r in reports.OrderByDescending(x => x.Date).Take(20))
+        {
+            <div class="record-item">
+
+                <div class="record-left">
+                    <div class="record-value">
+                        @r.FileName
+                    </div>
+
+                    <div class="record-date">
+                        @r.Type • @r.Date.ToString("MMM dd, yyyy")
+                    </div>
+                </div>
+
+            </div>
+        }
+    </div>
+
+</div>
 
 @code {
+    private ReportType selectedType = ReportType.LabTest;
+    private IBrowserFile? selectedFile;
 
+    private List<Report> reports = new();
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null) return;
+
+        var uploadsFolder = Path.Combine(env.WebRootPath, "uploads");
+
+        if (!Directory.Exists(uploadsFolder))
+            Directory.CreateDirectory(uploadsFolder);
+
+        var fileName = $"{Guid.NewGuid()}_{selectedFile.Name}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await selectedFile.OpenReadStream().CopyToAsync(stream);
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var report = new Report
+        {
+            UserId = userId,
+            Type = selectedType,
+            FileName = selectedFile.Name,
+            FilePath = fileName,
+            Date = DateTime.Now
+        };
+
+        reports.Add(report);
+
+        selectedFile = null;
+    }
 }

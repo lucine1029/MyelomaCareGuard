@@ -1,0 +1,235 @@
+﻿@page "/booking"
+@attribute [Authorize]
+
+@using MyelomaCareGuard.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using MyelomaCareGuard.Services
+@inject AuthenticationStateProvider AuthStateProvider
+@inject BookingService BookingService
+
+<div class="records-header">
+    <h2 class="page-title">Bookings</h2>
+    <h6 class="page-subtitle">Upcoming bookings & reminders</h6>
+</div>
+
+<div class="records-scroll">
+
+    <!-- ADD CARD -->
+    <div class="card">
+        <h4>New Booking</h4>
+
+        <input class="form-control mb-2"
+               placeholder="Title"
+               @bind="newBooking.Title" />
+
+        <input type="datetime-local"
+               class="form-control"
+               value="@dateTimeString"
+               @onchange="OnDateTimeChanged" />
+
+        <input class="form-control mb-2"
+               placeholder="Location"
+               @bind="newBooking.Location" />
+
+        <button class="btn-primary mt-2" @onclick="AddBooking">
+            + Add Booking
+        </button>
+    </div>
+
+    <!-- LIST -->
+    <div class="card">
+        <h4>Upcoming</h4>
+
+        @foreach (var b in bookings.OrderBy(x => x.DateTime))
+        {
+            <div class="record-item">
+
+                <div class="record-left record-sub-item">
+
+                    @if (editingBookingId == b.Id)
+                    {
+                        <input class="form-control mb-2"
+                               @bind="editingBooking.Title" />
+
+                        <input type="datetime-local"
+                               class="form-control mb-2"
+                               value="@editingBooking.DateTime.ToString("yyyy-MM-ddTHH:mm")"
+                               @onchange="OnEditDateChanged" />
+
+                        <input class="form-control"
+                               @bind="editingBooking.Location" />
+                    }
+                    else
+                    {
+                        <div class="record-value">
+                            📌 @b.Title
+                        </div>
+
+                        <div class="record-date">
+                            📅 @b.DateTime.ToString("MMM dd yyyy HH:mm")
+                        </div>
+
+                        <div class="record-date">
+                            📍 @b.Location
+                        </div>
+                    }
+
+                </div>
+
+                <div class="record-right">
+
+                    @if (editingBookingId == b.Id)
+                    {
+                        <div class="record-actions">
+
+                            <button class="icon-btn save"
+                                    @onclick="SaveEditBooking">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+
+                            <button class="icon-btn cancel"
+                                    @onclick="CancelEditBooking">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="status normal">
+                            @GetDaysLeft(b.DateTime)
+                        </span>
+
+                        <div class="record-actions">
+
+                            <button class="icon-btn edit"
+                                    @onclick="() => StartEditBooking(b)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <button class="icon-btn delete"
+                                    @onclick="() => DeleteBooking(b.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+        }
+    </div>
+
+</div>
+
+@code {
+
+    private List<Booking> bookings = new();
+    private Booking newBooking = new()
+    {
+        DateTime = DateTime.Now
+    };
+
+    private string dateTimeString = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+
+    private int? editingBookingId = null;
+
+    private Booking editingBooking = new();
+
+    private void OnDateTimeChanged(ChangeEventArgs e)
+    {
+        dateTimeString = e.Value?.ToString() ?? "";
+
+        if (DateTime.TryParse(dateTimeString, out var dt))
+        {
+            newBooking.DateTime = dt;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBookings();
+    }
+
+    private async Task LoadBookings()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        bookings = await BookingService.GetByUserAsync(userId);
+    }
+
+    private async Task AddBooking()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        newBooking.UserId = userId;
+
+        await BookingService.AddAsync(newBooking);
+
+        await LoadBookings();
+
+        newBooking = new Booking();
+    }
+
+    private void StartEditBooking(Booking booking)
+    {
+        editingBookingId = booking.Id;
+
+        editingBooking = new Booking
+        {
+            Id = booking.Id,
+            UserId = booking.UserId,
+            Title = booking.Title,
+            DateTime = booking.DateTime,
+            Location = booking.Location
+        };
+    }
+
+    private void CancelEditBooking()
+    {
+        editingBookingId = null;
+    }
+
+    private void OnEditDateChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+
+        if (DateTime.TryParse(value, out var dt))
+        {
+            editingBooking.DateTime = dt;
+        }
+    }
+
+    private async Task SaveEditBooking()
+    {
+        await BookingService.UpdateAsync(editingBooking);
+
+        editingBookingId = null;
+
+        await LoadBookings();
+    }
+
+    private async Task DeleteBooking(int id)
+    {
+        await BookingService.DeleteAsync(id);
+
+        await LoadBookings();
+    }
+
+    private string GetDaysLeft(DateTime dt)
+    {
+        var days = (dt.Date - DateTime.Today).Days;
+
+        if (days == 0)
+            return "Today";
+
+        if (days == 1)
+            return "Tomorrow";
+
+        return $"{days} days";
+    }
+
+}
