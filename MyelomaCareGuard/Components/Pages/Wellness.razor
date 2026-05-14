@@ -6,12 +6,30 @@
 @inject ReminderService ReminderService
 @inject AuthenticationStateProvider AuthStateProvider
 
-<h2 class="page-title">Wellness</h2>
-<h6 class="page-subtitle">Set up your daily reminders</h6>
+<div class="records-header">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+        <div>
+            <h2 class="page-title">Wellness</h2>
+            <h6 class="page-subtitle">
+                Set up your daily reminders
+            </h6>
+        </div>
+
+        <button class="btn-primary"
+                @onclick="ToggleReminderForm">
+            + Add Reminder
+        </button>
+
+    </div>
+
+</div>
 
 <div class="records-scroll">
-<!-- ADD REMINDER CARD -->
-<div class="card">
+@if (showReminderForm)
+{
+    <div class="card">
 
     <h4>Add New Reminder</h4>
 
@@ -55,6 +73,39 @@
     </div>
 
 </div>
+}
+
+    <div class="card">
+
+        <h4>Relax & Calm</h4>
+
+        <div class="chip-row">
+            <button class="chip"
+                    @onclick='() => ChangePlaylist(calmPiano)'>
+                Piano
+            </button>
+
+            <button class="chip"
+                    @onclick='() => ChangePlaylist(sleep)'>
+                Sleep
+            </button>
+
+            <button class="chip"
+                    @onclick='() => ChangePlaylist(meditation)'>
+                Meditation
+            </button>
+        </div>
+
+        <iframe style="border-radius:16px"
+                src="@currentPlaylist"
+                width="100%"
+                height="352"
+                frameBorder="0"
+                allowfullscreen=""
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
+        </iframe>
+
+    </div>
 
 <!-- REMINDER LIST -->
 <div class="card">
@@ -62,26 +113,92 @@
 
     @if (reminders.Any())
     {
-        @foreach (var r in reminders.Take(20))
-        {
-            <div class="record-item">
+            @foreach (var r in reminders.Take(20))
+            {
+                <div class="record-item">
 
-                <div class="record-sub-item">
-                    <div class="record-value">
-                        @r.Title
+                    <!-- LEFT -->
+                    <div class="record-left record-sub-item">
+
+                        @if (editingReminderId == r.Id)
+                        {
+                            <!-- EDIT MODE -->
+
+                            <input class="form-control mb-2"
+                                   @bind="r.Title" />
+
+                            <input type="time"
+                                   class="form-control mb-2"
+                                   value="@r.Time.ToString(@"hh\:mm")"
+                                   @onchange="(e) => OnEditTimeChanged(e, r)" />
+
+                            <div class="record-date">
+                                @string.Join(", ", r.Days)
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- NORMAL MODE -->
+
+                            <div class="record-value">
+                                @r.Title
+                            </div>
+
+                            <div class="record-date">
+                                <i class="bi bi-clock"></i>
+                                @r.Time.ToString(@"hh\:mm")
+                            </div>
+
+                            <div class="record-date">
+                                <i class="bi bi-calendar3"></i>
+                                @string.Join(", ", r.Days)
+                            </div>
+
+                            <div class="record-date">
+                                @r.Type
+                            </div>
+                        }
+
                     </div>
 
-                    <div class="record-date">
-                        @string.Join(", ", r.Days)
+                    <div class="record-right">
+                    <!-- RIGHT -->
+                    <div class="record-actions">
+
+                        @if (editingReminderId == r.Id)
+                        {
+                            <!-- SAVE / CANCEL -->
+
+                            <button class="icon-btn save"
+                                    @onclick="() => SaveEditReminder(r)">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+
+                            <button class="icon-btn cancel"
+                                    @onclick="CancelEditReminder">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <!-- EDIT / DELETE -->
+
+                            <button class="icon-btn edit"
+                                    @onclick="() => StartEditReminder(r.Id)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <button class="icon-btn delete"
+                                    @onclick="() => DeleteReminder(r.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+
                     </div>
-                </div>
+                    </div>
 
-                <div class="text-end">
-                    <div>@r.Time.ToString(@"hh\:mm")</div>
                 </div>
-
-            </div>
-        }
+            }
     }
     else
     {
@@ -106,36 +223,29 @@
         set { }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadReminders();
-    }
-
-    private async Task LoadReminders()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-        reminders = await ReminderService.GetByUserAsync(userId);
-    }
-
     private async Task SaveReminder()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        var reminder = new Reminder
+        var userId = authState.User
+            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+            ?.Value;
+
+        newReminder.UserId = userId;
+
+        if (isEditing)
         {
-            Title = newReminder.Title,
-            Type = newReminder.Type,
-            Time = newReminder.Time,
-            Days = new List<string>(newReminder.Days),
-            UserId = userId
-        };
+            await ReminderService.UpdateAsync(newReminder);
+        }
+        else
+        {
+            await ReminderService.AddAsync(newReminder);
+        }
 
-        await ReminderService.AddAsync(reminder);
+        reminders = await ReminderService.GetByUserAsync(userId);
 
-        await LoadReminders();   // 🔥 reload from DB
+        isEditing = false;
+        editingId = 0;
 
         Cancel();
     }
@@ -147,6 +257,16 @@
         if (TimeSpan.TryParse(value, out var time))
         {
             newReminder.Time = time;
+        }
+    }
+
+    private void OnEditTimeChanged(ChangeEventArgs e, Reminder reminder)
+    {
+        var value = e.Value?.ToString();
+
+        if (TimeSpan.TryParse(value, out var time))
+        {
+            reminder.Time = time;
         }
     }
 
@@ -170,5 +290,124 @@
             Type = ReminderType.Medication,
             Days = new List<string>()
         };
+
+        showReminderForm = false;
     }
+
+
+    private string currentMusic = "";
+
+    private List<string> musicList = new()
+{
+    "https://www.youtube.com/embed/jfKfPfyJRdk",
+    "https://www.youtube.com/embed/5qap5aO4i9A",
+    "https://www.youtube.com/embed/DWcJFNfaw9c"
+};
+
+    private void LoadRandomMusic()
+    {
+        var rnd = new Random();
+
+        currentMusic = musicList[rnd.Next(musicList.Count)];
+    }
+
+    private string calmPiano =
+    "https://open.spotify.com/embed/playlist/37i9dQZF1DX4sWSpwq3LiO";
+
+    private string sleep =
+        "https://open.spotify.com/embed/playlist/37i9dQZF1DWZd79rJ6a7lp";
+
+    private string meditation =
+        "https://open.spotify.com/embed/playlist/37i9dQZF1DX1tuUiirhaT3";
+
+    private string currentPlaylist = "";
+
+    protected override void OnInitialized()
+    {
+        currentPlaylist = calmPiano;
+    }
+
+    private void ChangePlaylist(string playlist)
+    {
+        currentPlaylist = playlist;
+    }
+
+    private bool showReminderForm = false;
+    private void ToggleReminderForm()
+    {
+        showReminderForm = !showReminderForm;
+    }
+
+    private bool isEditing = false;
+    private int editingId = 0;
+
+    private int? editingReminderId = null;
+
+    private void EditReminder(Reminder reminder)
+    {
+        newReminder = new Reminder
+        {
+            Id = reminder.Id,
+            Title = reminder.Title,
+            Type = reminder.Type,
+            Time = reminder.Time,
+            Days = new List<string>(reminder.Days),
+            UserId = reminder.UserId
+        };
+
+        editingId = reminder.Id;
+        isEditing = true;
+
+        showReminderForm = true;
+    }
+
+    private async Task DeleteReminder(int id)
+    {
+        await ReminderService.DeleteAsync(id);
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        var userId = authState.User
+            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+            ?.Value;
+
+        reminders = await ReminderService.GetByUserAsync(userId);
+    }
+
+
+    private void CancelEditReminder()
+    {
+        editingReminderId = null;
+    }
+
+    private void StartEditReminder(int id)
+    {
+        editingReminderId = id;
+    }
+
+    private async Task SaveEditReminder(Reminder reminder)
+    {
+        await ReminderService.UpdateAsync(reminder);
+
+        editingReminderId = null;
+
+        await LoadReminders();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReminders();
+    }
+
+    private async Task LoadReminders()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        var userId = authState.User
+            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+            ?.Value;
+
+        reminders = await ReminderService.GetByUserAsync(userId);
+    }
+
 }

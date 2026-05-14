@@ -29,7 +29,14 @@ namespace MyelomaCareGuard.Services
                 .ToListAsync();
         }
 
-        // OPTIONAL: delete reminder
+        // UPDATE
+        public async Task UpdateAsync(Reminder reminder)
+        {
+            _context.Reminders.Update(reminder);
+            await _context.SaveChangesAsync();
+        }
+
+        // DELETE
         public async Task DeleteAsync(int id)
         {
             var reminder = await _context.Reminders.FindAsync(id);
