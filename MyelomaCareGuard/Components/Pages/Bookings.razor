@@ -40,7 +40,9 @@
     <div class="card">
         <h4>Upcoming</h4>
 
-        @foreach (var b in bookings.OrderBy(x => x.DateTime))
+        @foreach (var b in bookings
+        .Where(x => x.DateTime >= DateTime.Now)
+        .OrderBy(x => x.DateTime))
         {
             <div class="record-item">
 
