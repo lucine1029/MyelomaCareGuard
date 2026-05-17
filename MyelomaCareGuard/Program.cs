@@ -6,6 +6,7 @@ using MyelomaCareGuard.Components;
 using MyelomaCareGuard.Components.Account;
 using MyelomaCareGuard.Data;
 using MyelomaCareGuard.Services;
+using MyelomaCareGuard.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,9 +18,10 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-builder.Services.AddScoped<RecordService>();
-builder.Services.AddScoped<BookingService>();
-builder.Services.AddScoped<ReminderService>();
+builder.Services.AddScoped<IRecordService, RecordService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IRecordMetadataService, RecordMetadataService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
 
 builder.Services.AddAuthentication(options =>
     {

@@ -3,7 +3,9 @@
 
 @using MyelomaCareGuard.Models
 @using MyelomaCareGuard.Services
-@inject ReminderService ReminderService
+@using MyelomaCareGuard.Services.Interfaces
+
+@inject IReminderService ReminderService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <div class="records-header">

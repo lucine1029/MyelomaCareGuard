@@ -4,9 +4,10 @@
 @using MyelomaCareGuard.Models
 @using MyelomaCareGuard.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using MyelomaCareGuard.Services.Interfaces
 
-@inject ReminderService ReminderService
-@inject BookingService BookingService
+@inject IBookingService BookingService
+@inject IReminderService ReminderService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <div class="home-header">
@@ -66,7 +67,9 @@
         {
             <div class="record-item">
 
-                <div class="record-sub-item">
+                    <!-- LEFT -->
+
+                 <div class="record-sub-item record-left">
                     <div class="record-value">
                         @b.Title
                     </div>
@@ -77,6 +80,16 @@
                     </div>
                 </div>
 
+                    <!-- Middle -->
+                    <div class="record-middle">
+
+                        <div class="booking-time-alert">
+                            @b.DateTime.ToString("HH:mm")
+                        </div>
+
+                    </div>
+
+                    <!-- Right -->
                 <div class="text-end">
                     <div class="status normal">
                         @GetDaysLeftText(b.DateTime)

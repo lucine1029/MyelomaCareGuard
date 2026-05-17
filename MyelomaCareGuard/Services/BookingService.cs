@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyelomaCareGuard.Data;
 using MyelomaCareGuard.Models;
+using MyelomaCareGuard.Services.Interfaces;
 
 namespace MyelomaCareGuard.Services
 {
-    public class BookingService
+    public class BookingService : IBookingService
     {
         private readonly ApplicationDbContext _context;
 

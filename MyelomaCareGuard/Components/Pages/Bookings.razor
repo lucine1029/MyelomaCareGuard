@@ -4,8 +4,9 @@
 @using MyelomaCareGuard.Models
 @using Microsoft.AspNetCore.Components.Authorization
 @using MyelomaCareGuard.Services
+@using MyelomaCareGuard.Services.Interfaces
 @inject AuthenticationStateProvider AuthStateProvider
-@inject BookingService BookingService
+@inject IBookingService BookingService
 
 <div class="records-header">
     <h2 class="page-title">Bookings</h2>

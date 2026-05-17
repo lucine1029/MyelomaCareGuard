@@ -1,8 +1,9 @@
 ﻿using MyelomaCareGuard.Models;
+using MyelomaCareGuard.Services.Interfaces;
 
 namespace MyelomaCareGuard.Services
 {
-    public static class RecordMetadataService
+    public class RecordMetadataService : IRecordMetadataService
     {
         private static readonly Dictionary<RecordType, RecordMetadata> _metadata = new()
         {
@@ -16,7 +17,7 @@ namespace MyelomaCareGuard.Services
             { RecordType.Calcium, new RecordMetadata { Unit = "mmol/L", Min = 2.11, Max = 2.41} },
             { RecordType.Beta2Microglobulin, new RecordMetadata { Unit = "mg/L", Min = 1.30, Max = 3.00 } }*/
         };
-        public static RecordMetadata GetMetadata(RecordType type)
+        public RecordMetadata GetMetadata(RecordType type)
         {
             if (_metadata.TryGetValue(type, out var metadata))
             {

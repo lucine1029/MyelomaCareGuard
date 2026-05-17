@@ -6,8 +6,11 @@
 @using MyelomaCareGuard.Models
 @using Microsoft.AspNetCore.Components.Authorization
 @using MyelomaCareGuard.Services
+@using MyelomaCareGuard.Services.Interfaces
+
 @inject AuthenticationStateProvider AuthStateProvider
-@inject RecordService RecordService
+@inject IRecordService RecordService
+@inject IRecordMetadataService RecordMetadataService
 
 <div class="records-header">
     <h2 class="page-title">Health Records</h2>

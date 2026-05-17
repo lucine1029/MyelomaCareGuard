@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyelomaCareGuard.Data;
 using MyelomaCareGuard.Models;
+using MyelomaCareGuard.Services.Interfaces;
 
 namespace MyelomaCareGuard.Services
 {
-    public class ReminderService
+    public class ReminderService: IReminderService
     {
         private readonly ApplicationDbContext _context;
 

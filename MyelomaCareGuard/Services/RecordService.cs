@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyelomaCareGuard.Data;
 using MyelomaCareGuard.Models;
+using MyelomaCareGuard.Services.Interfaces;
 
 namespace MyelomaCareGuard.Services
 {
-    public class RecordService
+    public class RecordService : IRecordService
     {
         private readonly ApplicationDbContext _context;
         public RecordService(ApplicationDbContext context)
