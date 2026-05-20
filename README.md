@@ -1,4 +1,4 @@
-# 🫶 CareGuard — Family Health Companion (MVP)
+# 🫶 MyelomaCareGuard(MVP)
 
 A simple, warm, and accessible chronic disease management app designed for families to support elderly parents.
 
